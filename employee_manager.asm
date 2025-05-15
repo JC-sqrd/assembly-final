@@ -143,7 +143,6 @@ SearchProfile:
     invoke StdOut, addr searchMsg
     invoke StdOut, addr empIdPrompt
     invoke StdIn, addr inputBuffer, sizeof inputBuffer
-    invoke atodw, addr inputBuffer  ; Convert input to number
     mov ebx, eax  ; EBX = employee ID to search for
 
     ; Start searching for the employee in the array
@@ -151,25 +150,24 @@ SearchProfile:
     mov ecx, employeeCount  ; How many employees to search through
 
     ; Search loop
-    xor eax, eax  ; EAX = index
+    xor esi, esi  ; ESI = loop index
+    
 SearchLoop:
-    cmp eax, ecx
-    jge EmployeeNotFound  ; If we've searched through all employees, exit
+    cmp esi, employeeCount
+    jge EmployeeNotFound
 
-    ;Calculate the address of the current employee
-    lea edi, [employeeArray]     ; EDI points to the start of the employee array
-    mov ebx, eax                 ; EBX = index (employee number)
-    mov ecx, SIZEOF Employee     ; Load the size of Employee structure into ECX
-    mul ecx                      ; Multiply index by the size of the Employee structure (result in EAX)
-    add edi, eax                 ; EDI now points to the correct employee (employeeArray[index])
+    mov eax, esi
+    mov ecx, SIZEOF Employee
+    mul ecx
+    lea edi, employeeArray
+    add edi, eax  ; EDI = &employeeArray[esi]
 
-    ;Access empID field using correct offset
-    lea eax, [edi + offset Employee.empID]   ; eax = address of stored empID
-    invoke lstrcmp, eax, addr inputBuffer    ; Compare it to user input
+    lea eax, [edi + offset Employee.empID]
+    invoke lstrcmp, eax, addr inputBuffer
     cmp eax, 0
     je EmployeeFound
 
-    inc eax  ; Move to next employee
+    inc esi
     jmp SearchLoop
 
 EmployeeFound:
@@ -221,20 +219,21 @@ DeleteProfile:
     invoke StdIn, addr inputBuffer, sizeof inputBuffer
 
     ; Start searching for the employee
-    lea esi, employeeArray
+    lea edi, employeeArray
     mov ecx, employeeCount
 
-    xor eax, eax   ; Index
-    
+    xor esi, esi   ; ESI = index
+
 SearchDeleteLoop:
-    cmp eax, ecx
+    cmp esi, ecx
     jge EmployeeNotFound
 
-    mov edx, eax
+    ; Calculate &employeeArray[esi]
+    mov eax, esi
     mov ebx, SIZEOF Employee
     mul ebx
     lea edi, employeeArray
-    add edi, eax  ; edi = &employeeArray[index]
+    add edi, eax  ; EDI = &employeeArray[esi]
 
     ; Compare empID
     lea eax, [edi + offset Employee.empID]
@@ -242,44 +241,46 @@ SearchDeleteLoop:
     cmp eax, 0
     je DeleteFound
 
-    inc edx
-    mov eax, edx
+    inc esi
     jmp SearchDeleteLoop
 
 DeleteFound:
-    ; edx = index of employee to delete
-    ; Shift remaining entries left
-    mov esi, edx
-    inc esi             ; esi = index of next employee (i+1)
-    mov ecx, employeeCount
-    sub ecx, esi        ; ecx = how many entries to move
+    ; ESI = index of employee to delete
 
-    cmp ecx, 0
-    jle SkipShift       ; No entries to move if deleting last one
+    ; Check if it's the last employee — no need to shift
+    mov eax, employeeCount
+    dec eax
+    cmp esi, eax
+    jge SkipShift
 
+    ; Start shifting remaining entries left
     mov ebx, SIZEOF Employee
 
 ShiftLoop:
+    ; Calculate source address = employeeArray[esi + 1]
     mov eax, esi
+    inc eax
     mul ebx
     lea esi, employeeArray
-    add esi, eax     ; esiPtr = &employeeArray[i+1]
+    add esi, eax
 
-    mov eax, edx
+    ; Calculate destination address = employeeArray[esi]
+    mov eax, esi
     mul ebx
     lea edi, employeeArray
-    add edi, eax     ; ediPtr = &employeeArray[i]
+    add edi, eax
 
+    ; Copy employee structure
     mov ecx, SIZEOF Employee
-    ;mov esi, esiPtr
-    ;mov edi, ediPtr
+    mov esi, esi
+    mov edi, edi
     rep movsb
 
-    inc edx
     inc esi
-    dec ecx
-    jmp ShiftLoop
-    ;loop ShiftLoop
+    mov eax, employeeCount
+    dec eax
+    cmp esi, eax
+    jl ShiftLoop
 
 SkipShift:
     ; Decrement employee count
