@@ -28,13 +28,14 @@ Employee ENDS
     promptMessage      db "Enter a number (1-4): ", 10,13,0
     inputBuffer        db 16 dup(0)
     createMsg          db "1. Create a new employee profile", 10, 13, 0
-    addMsg             db "2. Search employee profile", 10, 13, 0
+    searchMsg             db "2. Search employee profile", 10, 13, 0
     deleteMsg          db "3. Delete existing employee profile", 10, 13, 0
     exitMsg            db "4. Exit", 10, 13, 0
     invalidMsg         db "Invalid input!", 10, 13, 0
     empDeletedMsg      db "Employee successfully deleted", 10, 13, 0
+    choicePrompt       db "Enter choice:", 10, 13, 0
+
     
-    searchMsg db "Enter employee ID:", 10, 13, 0
     empFoundMsg db "Employee found!", 10, 13, 0
     empNotFoundMsg db "Employee not found", 10, 13, 0
 
@@ -45,6 +46,7 @@ Employee ENDS
     empSalaryPrompt   db "Enter Salary: ",10,13,0
     empDatePrompt     db "Enter Date Hired: ",10,13,0
     newLine db 10,13,0
+    
 
     ; Employee data buffers
     empID             db 32 dup(0)
@@ -59,9 +61,10 @@ start:
 MainMenu:
     invoke StdOut, addr promptMessage
     invoke StdOut, addr createMsg
-    invoke StdOut, addr addMsg
+    invoke StdOut, addr searchMsg
     invoke StdOut, addr deleteMsg
     invoke StdOut, addr exitMsg
+    invoke StdOut, addr choicePrompt
     invoke StdIn, addr inputBuffer, sizeof inputBuffer
     invoke atodw, addr inputBuffer
     mov eax, eax  ; EAX = choice
@@ -171,6 +174,7 @@ SearchLoop:
     jmp SearchLoop
 
 EmployeeFound:
+    invoke ClearScreen
     ; Display the employee details
     invoke StdOut, addr empFoundMsg
 
@@ -213,6 +217,7 @@ EmployeeNotFound:
     jmp MainMenu
 
 DeleteProfile:
+    invoke ClearScreen
     ; Ask for employee ID to delete
     invoke StdOut, addr deleteMsg
     invoke StdOut, addr empIdPrompt
@@ -245,6 +250,7 @@ SearchDeleteLoop:
     jmp SearchDeleteLoop
 
 DeleteFound:
+    invoke ClearScreen
     ; ESI = index of employee to delete
 
     ; Check if it's the last employee — no need to shift
